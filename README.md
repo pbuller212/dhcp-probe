@@ -6,6 +6,35 @@ A CLI tool to discover and report DHCP servers on the local network.
 
 - Go 1.24+
 
+## Build
+
+```
+git clone https://github.com/pbuller/dhcp-probe.git
+cd dhcp-probe
+go build -o dhcp-probe .
+```
+
+To install to `$GOPATH/bin`:
+
+```
+go install .
+```
+
+## Privileges
+
+`dhcp-probe` sends raw packets and requires elevated privileges. Either run with `sudo`:
+
+```
+sudo dhcp-probe [flags]
+```
+
+Or grant the binary the `CAP_NET_RAW` capability so it can run without `sudo`:
+
+```
+sudo setcap cap_net_raw+ep ./dhcp-probe
+./dhcp-probe [flags]
+```
+
 ## Usage
 
 ```
@@ -19,13 +48,19 @@ sudo dhcp-probe [flags]
 | `--mac` | interface MAC | Comma-separated source MACs to probe with |
 | `--json` | `false` | Output as JSON instead of a table |
 
-Raw socket access requires root privileges.
-
 ### Table output (default)
 
+Probe with multiple source MACs to detect DHCP servers that respond differently per client:
+
 ```
-SOURCE MAC         SERVER IP     SERVER MAC         MANUFACTURER  OFFERED IP     SUBNET MASK    GATEWAY       DNS           LEASE
-aa:bb:cc:dd:ee:ff  192.168.1.1   00:11:22:33:44:55  Acme Corp     192.168.1.100  255.255.255.0  192.168.1.1   8.8.8.8       24h0m0s
+sudo dhcp-probe --mac aa:bb:cc:dd:ee:01,aa:bb:cc:dd:ee:02
+```
+
+```
+SOURCE MAC         SERVER IP     SERVER MAC         MANUFACTURER      OFFERED IP     SUBNET MASK    GATEWAY       DNS           LEASE
+aa:bb:cc:dd:ee:01  192.168.1.1   00:11:22:33:44:55  Cisco Systems     192.168.1.100  255.255.255.0  192.168.1.1   8.8.8.8       24h0m0s
+aa:bb:cc:dd:ee:02  192.168.1.1   00:11:22:33:44:55  Cisco Systems     192.168.1.101  255.255.255.0  192.168.1.1   8.8.8.8       24h0m0s
+aa:bb:cc:dd:ee:02  10.0.0.1      de:ad:be:ef:00:01  Unknown           10.0.0.50      255.255.255.0  10.0.0.1      1.1.1.1       12h0m0s
 ```
 
 ### JSON output
@@ -37,15 +72,26 @@ sudo dhcp-probe --json
 ```json
 [
   {
-    "source_mac": "aa:bb:cc:dd:ee:ff",
+    "source_mac": "aa:bb:cc:dd:ee:01",
     "server_ip": "192.168.1.1",
     "server_mac": "00:11:22:33:44:55",
-    "manufacturer": "Acme Corp",
+    "manufacturer": "Cisco Systems",
     "offered_ip": "192.168.1.100",
     "subnet_mask": "255.255.255.0",
     "gateway": "192.168.1.1",
     "dns": ["8.8.8.8", "8.8.4.4"],
     "lease_time": "24h0m0s"
+  },
+  {
+    "source_mac": "aa:bb:cc:dd:ee:02",
+    "server_ip": "10.0.0.1",
+    "server_mac": "de:ad:be:ef:00:01",
+    "manufacturer": "Unknown",
+    "offered_ip": "10.0.0.50",
+    "subnet_mask": "255.255.255.0",
+    "gateway": "10.0.0.1",
+    "dns": ["1.1.1.1"],
+    "lease_time": "12h0m0s"
   }
 ]
 ```
