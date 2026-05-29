@@ -5,6 +5,8 @@ import (
 	"net"
 	"testing"
 	"time"
+
+	"github.com/pbuller/dhcp-probe/cmd"
 )
 
 // TestMACFlag_Single verifies that a single valid MAC is parsed correctly.
