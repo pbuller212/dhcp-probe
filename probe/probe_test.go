@@ -5,6 +5,8 @@ import (
 	"net"
 	"testing"
 	"time"
+
+	"github.com/pbuller/dhcp-probe/probe"
 )
 
 // rawDHCPOffer builds a minimal raw Ethernet+IP+UDP+DHCP OFFER frame.
