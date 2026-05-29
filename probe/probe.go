@@ -1,6 +1,7 @@
 package probe
 
 import (
+	"crypto/rand"
 	"encoding/binary"
 	"fmt"
 	"net"
@@ -218,10 +219,12 @@ func Probe(iface string, macs []net.HardwareAddr, timeout time.Duration) ([]Offe
 func buildDiscover(mac net.HardwareAddr) []byte {
 	// DHCP fixed header: 236 bytes
 	dhcp := make([]byte, 236)
-	dhcp[0] = 1    // op = BOOTREQUEST
-	dhcp[1] = 1    // htype = Ethernet
-	dhcp[2] = 6    // hlen
-	binary.BigEndian.PutUint32(dhcp[4:8], 0xdeadbeef) // xid (static; sufficient for testing)
+	dhcp[0] = 1 // op = BOOTREQUEST
+	dhcp[1] = 1 // htype = Ethernet
+	dhcp[2] = 6 // hlen
+	var xid [4]byte
+	_, _ = rand.Read(xid[:])
+	copy(dhcp[4:8], xid[:])
 	dhcp[10] = 0x80 // flags: broadcast
 	copy(dhcp[28:34], mac)
 
