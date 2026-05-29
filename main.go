@@ -1,7 +1,7 @@
 package main
 
-import (
-	_ "github.com/insomniacslk/dhcp/dhcpv4"
-)
+import "github.com/pbuller/dhcp-probe/cmd"
 
-func main() {}
+func main() {
+	cmd.Execute()
+}
