@@ -31,10 +31,9 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: |
-          EXT=""
-          [ "${{ matrix.goos }}" = "windows" ] && EXT=".exe"
+          # Windows binaries require the .exe extension
+          if [ "${{ matrix.goos }}" = "windows" ]; then EXT=".exe"; else EXT=""; fi
           go build -ldflags="-s -w" -o dhcp-probe-${{ matrix.goos }}-${{ matrix.goarch }}${EXT} .
-
 
       - name: Upload build artifact
         uses: https://code.forgejo.org/forgejo/upload-artifact@v4
