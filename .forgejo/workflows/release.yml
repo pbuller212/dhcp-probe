@@ -53,19 +53,27 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_name }}
-          API_BASE: ${{ env.GITHUB_SERVER_URL }}/api/v1
+          SERVER_URL: ${{ github.server_url }}
           REPO: ${{ github.repository }}
         run: |
+          API_BASE="${SERVER_URL}/api/v1"
+
+          echo "Files in dist/release:"
+          ls -la dist/release/
+
           # Create the release
           RELEASE=$(curl -sf -X POST "${API_BASE}/repos/${REPO}/releases" \
             -H "Authorization: token ${GITHUB_TOKEN}" \
             -H "Content-Type: application/json" \
             -d "{\"tag_name\": \"${TAG}\", \"name\": \"${TAG}\"}")
+          echo "Release response: ${RELEASE}"
           RELEASE_ID=$(echo "$RELEASE" | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2)
+          echo "Release ID: ${RELEASE_ID}"
 
           # Upload each binary
           for f in dist/release/*; do
-            curl -sf -X POST "${API_BASE}/repos/${REPO}/releases/${RELEASE_ID}/assets?name=$(basename $f)" \
+            echo "Uploading ${f}..."
+            curl -sf -X POST "${API_BASE}/repos/${REPO}/releases/${RELEASE_ID}/assets?name=$(basename "${f}")" \
               -H "Authorization: token ${GITHUB_TOKEN}" \
               -H "Content-Type: application/octet-stream" \
               --data-binary "@${f}"
