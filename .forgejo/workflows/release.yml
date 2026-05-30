@@ -47,7 +47,7 @@ jobs:
       - name: Flatten artifacts into release dir
         run: |
           find dist/release -mindepth 2 -type f -exec mv {} dist/release/ \;
-          find dist/release -mindepth 1 -type d -exec rm -rf {} +
+          find dist/release -maxdepth 1 -mindepth 1 -type d -exec rm -rf {} +
 
       - name: Upload release artifacts
         uses: https://data.forgejo.org/actions/forgejo-release@v2
