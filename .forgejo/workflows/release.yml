@@ -10,7 +10,13 @@ jobs:
     runs-on: ubuntu
     strategy:
       matrix:
-        goarch: [amd64, arm64]
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
 
     steps:
       - uses: https://code.forgejo.org/actions/checkout@v4
@@ -22,16 +28,19 @@ jobs:
       - name: Build
         env:
           CGO_ENABLED: "0"
-          GOOS: linux
+          GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: |
-          go build -ldflags="-s -w" -o dhcp-probe-linux-${{ matrix.goarch }} .
+          EXT=""
+          [ "${{ matrix.goos }}" = "windows" ] && EXT=".exe"
+          go build -ldflags="-s -w" -o dhcp-probe-${{ matrix.goos }}-${{ matrix.goarch }}${EXT} .
+
 
       - name: Upload build artifact
         uses: https://code.forgejo.org/forgejo/upload-artifact@v4
         with:
-          name: dhcp-probe-linux-${{ matrix.goarch }}
-          path: dhcp-probe-linux-${{ matrix.goarch }}
+          name: dhcp-probe-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dhcp-probe-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goos == 'windows' && '.exe' || '' }}
 
   release:
     needs: build
@@ -49,6 +58,12 @@ jobs:
         uses: https://code.forgejo.org/forgejo/download-artifact@v4
         with:
           name: dhcp-probe-linux-arm64
+          path: dist/release
+
+      - name: Download windows-amd64 artifact
+        uses: https://code.forgejo.org/forgejo/download-artifact@v4
+        with:
+          name: dhcp-probe-windows-amd64
           path: dist/release
 
       - name: Create release and upload binaries
