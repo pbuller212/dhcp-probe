@@ -49,9 +49,24 @@ jobs:
           find dist/release -mindepth 2 -type f -exec mv {} dist/release/ \;
           find dist/release -maxdepth 1 -mindepth 1 -type d -exec rm -rf {} +
 
-      - name: Upload release artifacts
-        uses: https://data.forgejo.org/actions/forgejo-release@v2
-        with:
-          direction: upload
-          release-dir: dist/release
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create release and upload binaries
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          API_BASE: ${{ env.GITHUB_SERVER_URL }}/api/v1
+          REPO: ${{ github.repository }}
+        run: |
+          # Create the release
+          RELEASE=$(curl -sf -X POST "${API_BASE}/repos/${REPO}/releases" \
+            -H "Authorization: token ${GITHUB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"tag_name\": \"${TAG}\", \"name\": \"${TAG}\"}")
+          RELEASE_ID=$(echo "$RELEASE" | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2)
+
+          # Upload each binary
+          for f in dist/release/*; do
+            curl -sf -X POST "${API_BASE}/repos/${REPO}/releases/${RELEASE_ID}/assets?name=$(basename $f)" \
+              -H "Authorization: token ${GITHUB_TOKEN}" \
+              -H "Content-Type: application/octet-stream" \
+              --data-binary "@${f}"
+          done
