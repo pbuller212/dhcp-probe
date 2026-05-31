@@ -62,7 +62,7 @@ func (p *pcapTransport) RecvOffers(_ net.HardwareAddr, timeout time.Duration) ([
 				continue
 			}
 			// Any other error: stop collecting and surface it.
-			return frames, err
+			return nil, err
 		}
 		frame := make([]byte, len(data))
 		copy(frame, data)
