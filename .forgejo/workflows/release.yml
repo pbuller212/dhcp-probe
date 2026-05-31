@@ -25,14 +25,35 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Install MinGW (Windows target only)
+        if: matrix.goos == 'windows'
+        run: sudo apt-get install -y gcc-mingw-w64-x86-64
+
+      - name: Download Npcap SDK (Windows target only)
+        if: matrix.goos == 'windows'
+        env:
+          NPCAP_SDK_VERSION: "1.13"
+          NPCAP_SDK_SHA256: "dad1f2bf1b02b787be08ca4862f99e39a876c1f274bac4ac0cedc9bbc58f94fd"
+        run: |
+          curl -fsSL -o npcap-sdk.zip "https://npcap.com/dist/npcap-sdk-${NPCAP_SDK_VERSION}.zip"
+          echo "${NPCAP_SDK_SHA256}  npcap-sdk.zip" | sha256sum -c -
+          unzip -q npcap-sdk.zip -d npcap-sdk
+
       - name: Build
         env:
-          CGO_ENABLED: "0"
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: |
-          # Windows binaries require the .exe extension
-          if [ "${{ matrix.goos }}" = "windows" ]; then EXT=".exe"; else EXT=""; fi
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            EXT=".exe"
+            export CGO_ENABLED=1
+            export CC=x86_64-w64-mingw32-gcc
+            export CGO_CFLAGS="-I$(pwd)/npcap-sdk/Include"
+            export CGO_LDFLAGS="-L$(pwd)/npcap-sdk/Lib/x64"
+          else
+            EXT=""
+            export CGO_ENABLED=0
+          fi
           go build -ldflags="-s -w" -o dhcp-probe-${{ matrix.goos }}-${{ matrix.goarch }}${EXT} .
 
       - name: Upload build artifact
