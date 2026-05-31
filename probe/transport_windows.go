@@ -61,8 +61,8 @@ func (p *pcapTransport) RecvOffers(_ net.HardwareAddr, timeout time.Duration) ([
 			if errors.Is(err, pcap.NextErrorTimeoutExpired) {
 				continue
 			}
-			// Any other error: stop collecting.
-			break
+			// Any other error: stop collecting and surface it.
+			return frames, err
 		}
 		frame := make([]byte, len(data))
 		copy(frame, data)
@@ -72,5 +72,7 @@ func (p *pcapTransport) RecvOffers(_ net.HardwareAddr, timeout time.Duration) ([
 }
 
 func (p *pcapTransport) close() {
-	p.handle.Close()
+	if p.handle != nil {
+		p.handle.Close()
+	}
 }
