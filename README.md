@@ -2,6 +2,13 @@
 
 A CLI tool to discover and report DHCP servers on the local network.
 
+## Installation
+
+Platform-specific install instructions:
+
+- [Linux](INSTALL.d/linux.md)
+- [Windows](INSTALL.d/windows.md)
+
 ## Requirements
 
 - Go 1.24+
