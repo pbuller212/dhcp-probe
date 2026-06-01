@@ -93,24 +93,35 @@ jobs:
           SERVER_URL: ${{ github.server_url }}
           REPO: ${{ github.repository }}
         run: |
+          set -euo pipefail
           API_BASE="${SERVER_URL}/api/v1"
 
-          # Get existing release by tag, or create it if it doesn't exist
-          RELEASE=$(curl -sf "${API_BASE}/repos/${REPO}/releases/tags/${TAG}" \
+          # Try to get existing release by tag
+          RELEASE=$(curl -sfS "${API_BASE}/repos/${REPO}/releases/tags/${TAG}" \
             -H "Authorization: token ${GITHUB_TOKEN}" || true)
           RELEASE_ID=$(echo "$RELEASE" | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2)
 
+          # Create release if it doesn't exist yet
           if [ -z "$RELEASE_ID" ]; then
-            RELEASE=$(curl -sf -X POST "${API_BASE}/repos/${REPO}/releases" \
+            RELEASE=$(curl -sfS -X POST "${API_BASE}/repos/${REPO}/releases" \
               -H "Authorization: token ${GITHUB_TOKEN}" \
               -H "Content-Type: application/json" \
               -d "{\"tag_name\": \"${TAG}\", \"name\": \"${TAG}\"}")
             RELEASE_ID=$(echo "$RELEASE" | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2)
           fi
 
+          if [ -z "$RELEASE_ID" ]; then
+            echo "ERROR: could not get or create release for tag ${TAG}"
+            echo "Response: ${RELEASE}"
+            exit 1
+          fi
+
+          echo "Release ID: ${RELEASE_ID}"
+
           # Upload each binary
           for f in dist/release/*; do
-            curl -sf -X POST "${API_BASE}/repos/${REPO}/releases/${RELEASE_ID}/assets?name=$(basename "${f}")" \
+            echo "Uploading $(basename "${f}")..."
+            curl -sfS -X POST "${API_BASE}/repos/${REPO}/releases/${RELEASE_ID}/assets?name=$(basename "${f}")" \
               -H "Authorization: token ${GITHUB_TOKEN}" \
               -H "Content-Type: application/octet-stream" \
               --data-binary "@${f}"
