@@ -65,7 +65,7 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu
-    if: startsWith(forgejo.ref, 'refs/tags/')
+    if: startsWith(gitea.ref, 'refs/tags/')
 
     steps:
       - name: Download amd64 artifact
@@ -89,9 +89,9 @@ jobs:
       - name: Create release and upload binaries
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ forgejo.ref_name }}
-          SERVER_URL: ${{ forgejo.server_url }}
-          REPO: ${{ forgejo.repository }}
+          TAG: ${{ gitea.ref_name }}
+          SERVER_URL: ${{ gitea.server_url }}
+          REPO: ${{ gitea.repository }}
         run: |
           API_BASE="${SERVER_URL}/api/v1"
 
