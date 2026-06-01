@@ -2,7 +2,9 @@ package probe_test
 
 import (
 	"encoding/binary"
+	"fmt"
 	"net"
+	"strings"
 	"testing"
 	"time"
 
@@ -165,6 +167,76 @@ func TestDecodeOffer_SourceMAC(t *testing.T) {
 	want := net.HardwareAddr{0x00, 0x11, 0x22, 0x33, 0x44, 0x55}
 	if offer.SourceMAC.String() != want.String() {
 		t.Errorf("SourceMAC = %v, want %v", offer.SourceMAC, want)
+	}
+}
+
+// TestProbeWithTransport_AllSuccess_NoError verifies that a clean run returns nil error.
+func TestProbeWithTransport_AllSuccess_NoError(t *testing.T) {
+	mac1, _ := net.ParseMAC("00:11:22:33:44:55")
+	mac2, _ := net.ParseMAC("aa:bb:cc:dd:ee:ff")
+
+	transport := &probe.StubTransport{
+		Frames: map[string][][]byte{
+			mac1.String(): {buildOfferForMAC(t, mac1)},
+			mac2.String(): {buildOfferForMAC(t, mac2)},
+		},
+	}
+
+	offers, err := probe.ProbeWithTransport(transport, []net.HardwareAddr{mac1, mac2}, 100*time.Millisecond)
+	if err != nil {
+		t.Fatalf("expected nil error, got: %v", err)
+	}
+	if len(offers) != 2 {
+		t.Fatalf("got %d offers, want 2", len(offers))
+	}
+}
+
+// TestProbeWithTransport_PartialError_ReturnsOffersAndError verifies that when one MAC fails,
+// offers from successful MACs are still returned alongside a non-nil error.
+func TestProbeWithTransport_PartialError_ReturnsOffersAndError(t *testing.T) {
+	mac1, _ := net.ParseMAC("00:11:22:33:44:55")
+	mac2, _ := net.ParseMAC("aa:bb:cc:dd:ee:ff")
+
+	transport := &probe.StubTransport{
+		Frames: map[string][][]byte{
+			mac1.String(): {buildOfferForMAC(t, mac1)},
+		},
+		Errors: map[string]error{
+			mac2.String(): fmt.Errorf("recv failed for %v", mac2),
+		},
+	}
+
+	offers, err := probe.ProbeWithTransport(transport, []net.HardwareAddr{mac1, mac2}, 100*time.Millisecond)
+	if err == nil {
+		t.Fatal("expected non-nil error for partial failure, got nil")
+	}
+	if len(offers) != 1 {
+		t.Fatalf("got %d offers, want 1", len(offers))
+	}
+	if !strings.Contains(err.Error(), mac2.String()) {
+		t.Errorf("error %q does not mention failed MAC %v", err, mac2)
+	}
+}
+
+// TestProbeWithTransport_AllErrors_ReturnsNoOffersAndError verifies that when all MACs fail,
+// no offers are returned and the error is non-nil.
+func TestProbeWithTransport_AllErrors_ReturnsNoOffersAndError(t *testing.T) {
+	mac1, _ := net.ParseMAC("00:11:22:33:44:55")
+	mac2, _ := net.ParseMAC("aa:bb:cc:dd:ee:ff")
+
+	transport := &probe.StubTransport{
+		Errors: map[string]error{
+			mac1.String(): fmt.Errorf("recv failed for %v", mac1),
+			mac2.String(): fmt.Errorf("recv failed for %v", mac2),
+		},
+	}
+
+	offers, err := probe.ProbeWithTransport(transport, []net.HardwareAddr{mac1, mac2}, 100*time.Millisecond)
+	if err == nil {
+		t.Fatal("expected non-nil error when all MACs fail, got nil")
+	}
+	if len(offers) != 0 {
+		t.Fatalf("got %d offers, want 0", len(offers))
 	}
 }
 
