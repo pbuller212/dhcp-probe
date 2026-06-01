@@ -3,6 +3,7 @@ package probe
 import (
 	"crypto/rand"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"net"
 	"sync"
@@ -32,9 +33,10 @@ type Transport interface {
 }
 
 // StubTransport is a test double. Frames is keyed by mac.String().
-// RecvOffers returns whatever frames are stored for that MAC.
+// RecvOffers returns frames for the MAC, or the error from Errors if set.
 type StubTransport struct {
 	Frames map[string][][]byte
+	Errors map[string]error
 }
 
 func (s *StubTransport) SendDiscover(_ net.HardwareAddr, _ []byte) error {
@@ -42,6 +44,11 @@ func (s *StubTransport) SendDiscover(_ net.HardwareAddr, _ []byte) error {
 }
 
 func (s *StubTransport) RecvOffers(mac net.HardwareAddr, _ time.Duration) ([][]byte, error) {
+	if s.Errors != nil {
+		if err, ok := s.Errors[mac.String()]; ok {
+			return nil, err
+		}
+	}
 	return s.Frames[mac.String()], nil
 }
 
@@ -181,13 +188,15 @@ func ProbeWithTransport(t Transport, macs []net.HardwareAddr, timeout time.Durat
 	close(ch)
 
 	var all []Offer
+	var errs []error
 	for r := range ch {
 		if r.err != nil {
-			return nil, r.err
+			errs = append(errs, r.err)
+			continue
 		}
 		all = append(all, r.offers...)
 	}
-	return all, nil
+	return all, errors.Join(errs...)
 }
 
 // Probe is the real entry point. It opens a raw socket on iface, sends

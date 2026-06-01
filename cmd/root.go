@@ -155,13 +155,20 @@ func Execute() {
 	}
 
 	offers, err := probe.Probe(cfg.Interface, cfg.MACs, cfg.Timeout)
-	if err != nil {
+	if err != nil && len(offers) == 0 {
 		if errors.Is(err, syscall.EPERM) || errors.Is(err, os.ErrPermission) {
 			fmt.Fprintf(os.Stderr, "permission denied: raw socket requires root — try: sudo dhcp-probe\n")
 		} else {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		}
 		os.Exit(1)
+	}
+
+	// Partial failure: some MACs succeeded, some did not.
+	exitCode := 0
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "warning: partial failure — %v\n", err)
+		exitCode = 2
 	}
 
 	jsonOffers := make([]JSONOffer, len(offers))
@@ -176,10 +183,11 @@ func Execute() {
 			os.Exit(1)
 		}
 		fmt.Println(out)
-		return
+		os.Exit(exitCode)
 	}
 
 	renderTable(jsonOffers)
+	os.Exit(exitCode)
 }
 
 // defaultInterface returns the name of the first non-loopback network interface.

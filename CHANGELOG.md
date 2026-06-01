@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Bug Fixes
+
+- **Partial probe failure** (`probe/probe.go`, `cmd/root.go`): `ProbeWithTransport` no longer discards all results when one goroutine errors. Per-MAC errors are now accumulated with `errors.Join` and returned alongside any successfully collected offers. The CLI prints partial results with a stderr warning and exits with code `2` on partial failure; it exits `1` only when all probes fail.
+
 ## [v1.0.0] - 2026-05-31
 
 ### Features
