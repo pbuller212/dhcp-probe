@@ -96,6 +96,11 @@ jobs:
           set -euo pipefail
           API_BASE="${SERVER_URL}/api/v1"
 
+          echo "DEBUG: SERVER_URL=${SERVER_URL}"
+          echo "DEBUG: REPO=${REPO}"
+          echo "DEBUG: TAG=${TAG}"
+          echo "DEBUG: API_BASE=${API_BASE}"
+
           # Try to get existing release by tag
           RELEASE=$(curl -sfS "${API_BASE}/repos/${REPO}/releases/tags/${TAG}" \
             -H "Authorization: token ${GITHUB_TOKEN}" || true)
