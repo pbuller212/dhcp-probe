@@ -100,18 +100,21 @@ jobs:
           echo "DEBUG: REPO=${REPO}"
           echo "DEBUG: TAG=${TAG}"
           echo "DEBUG: API_BASE=${API_BASE}"
+          echo "DEBUG: TOKEN_SET=${GITHUB_TOKEN:+yes}"
 
-          # Try to get existing release by tag
-          RELEASE=$(curl -sfS "${API_BASE}/repos/${REPO}/releases/tags/${TAG}" \
+          # Try to get existing release by tag (404 is expected if it doesn't exist yet)
+          RELEASE=$(curl -sf "${API_BASE}/repos/${REPO}/releases/tags/${TAG}" \
             -H "Authorization: token ${GITHUB_TOKEN}" || true)
           RELEASE_ID=$(echo "$RELEASE" | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2)
 
           # Create release if it doesn't exist yet
           if [ -z "$RELEASE_ID" ]; then
+            echo "No existing release found, creating..."
             RELEASE=$(curl -sfS -X POST "${API_BASE}/repos/${REPO}/releases" \
               -H "Authorization: token ${GITHUB_TOKEN}" \
               -H "Content-Type: application/json" \
               -d "{\"tag_name\": \"${TAG}\", \"name\": \"${TAG}\"}")
+            echo "DEBUG: POST response: ${RELEASE}"
             RELEASE_ID=$(echo "$RELEASE" | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2)
           fi
 
