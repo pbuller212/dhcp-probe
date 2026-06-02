@@ -105,7 +105,7 @@ jobs:
           # Try to get existing release by tag (404 is expected if it doesn't exist yet)
           RELEASE=$(curl -sf "${API_BASE}/repos/${REPO}/releases/tags/${TAG}" \
             -H "Authorization: token ${GITHUB_TOKEN}" || true)
-          RELEASE_ID=$(echo "$RELEASE" | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2)
+          RELEASE_ID=$(echo "$RELEASE" | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2 || true)
 
           # Create release if it doesn't exist yet
           if [ -z "$RELEASE_ID" ]; then
