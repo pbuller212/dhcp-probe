@@ -1,6 +1,7 @@
 package probe
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/binary"
 	"errors"
@@ -147,6 +148,67 @@ func DecodeOffer(frame []byte) (Offer, error) {
 	return offer, nil
 }
 
+// MatchesOffer reports whether frame is a DHCPOFFER addressed to mac.
+// It checks (in order): minimum length, UDP dst port 68, DHCP magic cookie,
+// chaddr matching mac, and DHCP option 53 == 2 (OFFER).
+func MatchesOffer(frame []byte, mac net.HardwareAddr) bool {
+	const (
+		ethLen  = 14
+		ipLen   = 20
+		udpLen  = 8
+		dhcpMin = 236
+		// Minimum frame size: headers + magic cookie (4) + option 53 TLV (3)
+		minLen = ethLen + ipLen + udpLen + dhcpMin + 4 + 3
+	)
+	if len(frame) < minLen {
+		return false
+	}
+
+	// UDP dst port at Ethernet(14) + IP(20) + UDP dst offset(2) = byte 36
+	if frame[36] != 0x00 || frame[37] != 68 {
+		return false
+	}
+
+	// chaddr at Ethernet(14) + IP(20) + UDP(8) + DHCP offset 28 = byte 70
+	const chadrOffset = ethLen + ipLen + udpLen + 28
+	if !bytes.Equal(frame[chadrOffset:chadrOffset+6], mac) {
+		return false
+	}
+
+	// DHCP magic cookie at Ethernet(14) + IP(20) + UDP(8) + DHCP fixed(236) = byte 278
+	const cookieOffset = ethLen + ipLen + udpLen + dhcpMin
+	if frame[cookieOffset] != 99 || frame[cookieOffset+1] != 130 ||
+		frame[cookieOffset+2] != 83 || frame[cookieOffset+3] != 99 {
+		return false
+	}
+
+	// Scan options for message type (option 53) == 2 (OFFER)
+	opts := frame[cookieOffset+4:]
+	for i := 0; i < len(opts); {
+		code := opts[i]
+		if code == 255 {
+			break
+		}
+		if code == 0 {
+			i++
+			continue
+		}
+		if i+1 >= len(opts) {
+			break
+		}
+		length := int(opts[i+1])
+		i += 2
+		if i+length > len(opts) {
+			break
+		}
+		if code == 53 && length == 1 {
+			return opts[i] == 2
+		}
+		i += length
+	}
+	return false
+}
+
 // ProbeWithTransport runs one goroutine per MAC, sends a DHCPDISCOVER via t,
 // collects DHCPOFFER frames, and returns the merged slice of Offers.
 func ProbeWithTransport(t Transport, macs []net.HardwareAddr, timeout time.Duration) ([]Offer, error) {
@@ -174,6 +236,9 @@ func ProbeWithTransport(t Transport, macs []net.HardwareAddr, timeout time.Durat
 			}
 			var offers []Offer
 			for _, f := range frames {
+				if !MatchesOffer(f, mac) {
+					continue
+				}
 				o, err := DecodeOffer(f)
 				if err != nil {
 					continue

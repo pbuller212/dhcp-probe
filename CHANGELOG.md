@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### Bug Fixes
 
+- **RecvOffers captured unrelated frames** (`probe/probe.go`): `ProbeWithTransport` now discards frames that are not valid DHCPOFFER responses for the target MAC before calling `DecodeOffer`. The new `MatchesOffer` helper checks UDP destination port 68, the DHCP magic cookie, `chaddr` equality, and DHCP option 53 == 2 (OFFER). Previously all IP frames on the interface were passed to `DecodeOffer`, which could return spurious offers under network load.
+
 - **Partial probe failure** (`probe/probe.go`, `cmd/root.go`): `ProbeWithTransport` no longer discards all results when one goroutine errors. Per-MAC errors are now accumulated with `errors.Join` and returned alongside any successfully collected offers. The CLI prints partial results with a stderr warning and exits with code `2` on partial failure; it exits `1` only when all probes fail.
 
 ## [v1.0.0] - 2026-05-31
