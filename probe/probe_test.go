@@ -289,3 +289,56 @@ func buildOfferForMAC(t *testing.T, mac net.HardwareAddr) []byte {
 	copy(frame[chadrOffset:chadrOffset+6], mac)
 	return frame
 }
+
+// TestMatchesOffer_AcceptsValidOffer verifies that a well-formed DHCPOFFER for the correct MAC passes.
+func TestMatchesOffer_AcceptsValidOffer(t *testing.T) {
+	mac, _ := net.ParseMAC("00:11:22:33:44:55")
+	frame := buildOfferForMAC(t, mac)
+	if !probe.MatchesOffer(frame, mac) {
+		t.Error("MatchesOffer returned false for a valid DHCPOFFER matching the target MAC")
+	}
+}
+
+// TestMatchesOffer_RejectsWrongMAC verifies that a frame with a mismatched chaddr is rejected.
+func TestMatchesOffer_RejectsWrongMAC(t *testing.T) {
+	mac, _ := net.ParseMAC("00:11:22:33:44:55")
+	other, _ := net.ParseMAC("aa:bb:cc:dd:ee:ff")
+	frame := buildOfferForMAC(t, other)
+	if probe.MatchesOffer(frame, mac) {
+		t.Error("MatchesOffer returned true for a frame with mismatched chaddr")
+	}
+}
+
+// TestMatchesOffer_RejectsWrongDstPort verifies that a frame with UDP dst port ≠ 68 is rejected.
+func TestMatchesOffer_RejectsWrongDstPort(t *testing.T) {
+	mac, _ := net.ParseMAC("00:11:22:33:44:55")
+	frame := buildOfferForMAC(t, mac)
+	// UDP dst port is at bytes 36-37 (Ethernet 14 + IP 20 + UDP dst offset 2)
+	frame[36] = 0x00
+	frame[37] = 0x43 // port 67, not 68
+	if probe.MatchesOffer(frame, mac) {
+		t.Error("MatchesOffer returned true for a frame with UDP dst port != 68")
+	}
+}
+
+// TestMatchesOffer_RejectsWrongMessageType verifies that a frame with DHCP option 53 != 2 is rejected.
+func TestMatchesOffer_RejectsWrongMessageType(t *testing.T) {
+	mac, _ := net.ParseMAC("00:11:22:33:44:55")
+	frame := buildOfferForMAC(t, mac)
+	// Option 53 (message type) is the first option after the magic cookie.
+	// Layout: Eth(14)+IP(20)+UDP(8)+DHCP fixed(236)+magic(4) = offset 282
+	// Then: code(53)=1 byte, len(1)=1 byte, value=1 byte → value at offset 284
+	const msgTypeValueOffset = 14 + 20 + 8 + 236 + 4 + 2
+	frame[msgTypeValueOffset] = 1 // DISCOVER, not OFFER
+	if probe.MatchesOffer(frame, mac) {
+		t.Error("MatchesOffer returned true for a frame with DHCP message type != OFFER")
+	}
+}
+
+// TestMatchesOffer_RejectsTooShort verifies that a truncated frame is rejected.
+func TestMatchesOffer_RejectsTooShort(t *testing.T) {
+	mac, _ := net.ParseMAC("00:11:22:33:44:55")
+	if probe.MatchesOffer([]byte{0x00, 0x01, 0x02}, mac) {
+		t.Error("MatchesOffer returned true for a truncated frame")
+	}
+}
