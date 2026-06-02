@@ -110,11 +110,15 @@ jobs:
           # Create release if it doesn't exist yet
           if [ -z "$RELEASE_ID" ]; then
             echo "No existing release found, creating..."
-            RELEASE=$(curl -sfS -X POST "${API_BASE}/repos/${REPO}/releases" \
+            HTTP_CODE=$(curl -s -o /tmp/release_response.json -w "%{http_code}" -X POST \
+              "${API_BASE}/repos/${REPO}/releases" \
               -H "Authorization: token ${GITHUB_TOKEN}" \
               -H "Content-Type: application/json" \
               -d "{\"tag_name\": \"${TAG}\", \"name\": \"${TAG}\"}")
-            echo "DEBUG: POST response: ${RELEASE}"
+            echo "DEBUG: POST HTTP status: ${HTTP_CODE}"
+            echo "DEBUG: POST response body: $(cat /tmp/release_response.json)"
+            [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ] || { echo "ERROR: POST failed"; exit 1; }
+            RELEASE=$(cat /tmp/release_response.json)
             RELEASE_ID=$(echo "$RELEASE" | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2)
           fi
 
