@@ -15,6 +15,12 @@ import (
 	"github.com/pbuller/dhcp-probe/probe"
 )
 
+// Version is set at build time via -ldflags "-X github.com/pbuller/dhcp-probe/cmd.Version=<tag>".
+var Version = "dev"
+
+// ErrVersion is returned by ParseFlags when --version is requested.
+var ErrVersion = errors.New("version requested")
+
 // Config holds the parsed CLI flags.
 type Config struct {
 	Interface string
@@ -59,9 +65,14 @@ func ParseFlags(args []string) (Config, error) {
 	timeout := fs.Duration("timeout", 3*time.Second, "wait window for DHCPOFFER responses")
 	macStr := fs.String("mac", "", "comma-separated source MACs to probe with (default: interface MAC)")
 	jsonOut := fs.Bool("json", false, "output as JSON")
+	showVersion := fs.Bool("version", false, "print version and exit")
 
 	if err := fs.Parse(args); err != nil {
 		return Config{}, err
+	}
+
+	if *showVersion {
+		return Config{}, ErrVersion
 	}
 
 	cfg := Config{
@@ -149,6 +160,10 @@ func toJSONOffer(o probe.Offer) JSONOffer {
 // Execute is the CLI entry point.
 func Execute() {
 	cfg, err := ParseFlags(os.Args[1:])
+	if errors.Is(err, ErrVersion) {
+		fmt.Printf("dhcp-probe %s\n", Version)
+		os.Exit(0)
+	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)

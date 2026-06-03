@@ -25,6 +25,9 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Vet
+        run: go vet ./...
+
       - name: Install MinGW (Windows target only)
         if: matrix.goos == 'windows'
         run: sudo apt-get update && sudo apt-get install -y mingw-w64
@@ -54,7 +57,7 @@ jobs:
             EXT=""
             export CGO_ENABLED=0
           fi
-          go build -ldflags="-s -w" -o dhcp-probe-${{ matrix.goos }}-${{ matrix.goarch }}${EXT} .
+          go build -ldflags="-s -w -X github.com/pbuller/dhcp-probe/cmd.Version=${{ github.ref_name }}" -o dhcp-probe-${{ matrix.goos }}-${{ matrix.goarch }}${EXT} .
 
       - name: Upload build artifact
         uses: https://code.forgejo.org/forgejo/upload-artifact@v4

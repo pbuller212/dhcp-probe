@@ -42,6 +42,10 @@ sudo setcap cap_net_raw+ep ./dhcp-probe
 ./dhcp-probe [flags]
 ```
 
+### Windows
+
+On Windows, raw socket access requires running as **Administrator**. See [INSTALL.d/windows.md](INSTALL.d/windows.md) for full install and usage instructions.
+
 ## Usage
 
 ```
@@ -54,6 +58,7 @@ sudo dhcp-probe [flags]
 | `--timeout` | `3s` | Wait window for DHCPOFFER responses |
 | `--mac` | interface MAC | Comma-separated source MACs to probe with |
 | `--json` | `false` | Output as JSON instead of a table |
+| `--version` | | Print version and exit |
 
 ### Table output (default)
 

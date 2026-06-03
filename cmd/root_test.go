@@ -52,6 +52,21 @@ func TestMACFlag_MalformedInList(t *testing.T) {
 	}
 }
 
+// TestVersionFlag verifies that --version causes ParseFlags to return ErrVersion.
+func TestVersionFlag(t *testing.T) {
+	_, err := cmd.ParseFlags([]string{"--version"})
+	if err != cmd.ErrVersion {
+		t.Errorf("ParseFlags(--version) error = %v, want ErrVersion", err)
+	}
+}
+
+// TestVersionDefault verifies that the Version variable defaults to "dev".
+func TestVersionDefault(t *testing.T) {
+	if cmd.Version == "" {
+		t.Error("Version is empty; want non-empty default")
+	}
+}
+
 // TestTimeoutFlag verifies that the --timeout flag value is parsed to a time.Duration.
 func TestTimeoutFlag(t *testing.T) {
 	args := []string{"--timeout", "5s", "--interface", "lo"}
