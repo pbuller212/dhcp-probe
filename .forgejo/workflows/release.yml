@@ -191,8 +191,7 @@ jobs:
             -H "Accept: application/vnd.github+json")
 
           if [ "$HTTP_CODE" -eq 200 ]; then
-            GH_RELEASE_ID=$(python3 -c 'import json; print(json.load(open("/tmp/gh_release_lookup.json"))["id"])')
-            UPLOAD_URL="${GH_API}/repos/${GH_REPO}/releases/${GH_RELEASE_ID}/assets"
+            RELEASE_JSON=/tmp/gh_release_lookup.json
           elif [ "$HTTP_CODE" -eq 404 ]; then
             PAYLOAD=$(RELEASE_NAME="$RELEASE_NAME" RELEASE_BODY="$RELEASE_BODY" TAG="$TAG" \
               python3 -c 'import json,os; print(json.dumps({"tag_name": os.environ["TAG"], "name": os.environ["RELEASE_NAME"], "body": os.environ["RELEASE_BODY"]}))')
@@ -203,12 +202,19 @@ jobs:
               -H "Content-Type: application/json" \
               -d "${PAYLOAD}")
             [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ] || { echo "ERROR: GitHub release POST failed (HTTP ${HTTP_CODE}): $(cat /tmp/gh_release_create.json)"; exit 1; }
-            GH_RELEASE_ID=$(python3 -c 'import json; print(json.load(open("/tmp/gh_release_create.json"))["id"])')
-            UPLOAD_URL="${GH_API}/repos/${GH_REPO}/releases/${GH_RELEASE_ID}/assets"
+            RELEASE_JSON=/tmp/gh_release_create.json
           else
             echo "ERROR: unexpected HTTP ${HTTP_CODE} looking up GitHub release for tag ${TAG}: $(cat /tmp/gh_release_lookup.json)"
             exit 1
           fi
+
+          GH_RELEASE_ID=$(RELEASE_JSON="$RELEASE_JSON" python3 -c 'import json,os; print(json.load(open(os.environ["RELEASE_JSON"]))["id"])')
+          # Asset uploads go to a dedicated host (uploads.github.com), not
+          # api.github.com. The release response's own upload_url is the
+          # documented source of truth for this, so use it rather than
+          # hand-building the path (it comes as an RFC 6570 URI template
+          # with a trailing {?name,label} we strip off).
+          UPLOAD_URL=$(RELEASE_JSON="$RELEASE_JSON" python3 -c 'import json,os; print(json.load(open(os.environ["RELEASE_JSON"]))["upload_url"].split("{")[0])')
 
           echo "GitHub release ID: ${GH_RELEASE_ID}"
 
