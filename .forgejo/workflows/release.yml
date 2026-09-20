@@ -194,8 +194,8 @@ jobs:
             GH_RELEASE_ID=$(python3 -c 'import json; print(json.load(open("/tmp/gh_release_lookup.json"))["id"])')
             UPLOAD_URL="${GH_API}/repos/${GH_REPO}/releases/${GH_RELEASE_ID}/assets"
           elif [ "$HTTP_CODE" -eq 404 ]; then
-            PAYLOAD=$(python3 -c 'import json,os; print(json.dumps({"tag_name": os.environ["TAG"], "name": os.environ["RELEASE_NAME"], "body": os.environ["RELEASE_BODY"]}))' \
-              RELEASE_NAME="$RELEASE_NAME" RELEASE_BODY="$RELEASE_BODY" TAG="$TAG")
+            PAYLOAD=$(RELEASE_NAME="$RELEASE_NAME" RELEASE_BODY="$RELEASE_BODY" TAG="$TAG" \
+              python3 -c 'import json,os; print(json.dumps({"tag_name": os.environ["TAG"], "name": os.environ["RELEASE_NAME"], "body": os.environ["RELEASE_BODY"]}))')
             HTTP_CODE=$(curl -s -o /tmp/gh_release_create.json -w "%{http_code}" -X POST \
               "${GH_API}/repos/${GH_REPO}/releases" \
               -H "${AUTH_HEADER}" \
