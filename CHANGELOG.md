@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### CI/CD
+
+- **GitHub release mirroring** (`.forgejo/workflows/release.yml`): New `mirror-github-release` job runs after a tagged build's Forgejo release is published. It creates (or reuses, by tag lookup) a matching GitHub Release on `pbuller/dhcp-probe` via the GitHub REST API and uploads the same cross-compiled binaries as release assets, skipping any that were already uploaded. Requires a fine-grained GitHub PAT (Releases: write, scoped to this repo) stored as the Forgejo Actions secret `GH_RELEASE_TOKEN`. Forgejo Actions remains the only build pipeline; GitHub receives finished artifacts only.
+
 ### Bug Fixes
 
 - **RecvOffers captured unrelated frames** (`probe/probe.go`): `ProbeWithTransport` now discards frames that are not valid DHCPOFFER responses for the target MAC before calling `DecodeOffer`. The new `MatchesOffer` helper checks UDP destination port 68, the DHCP magic cookie, `chaddr` equality, and DHCP option 53 == 2 (OFFER). Previously all IP frames on the interface were passed to `DecodeOffer`, which could return spurious offers under network load.
