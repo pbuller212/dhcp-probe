@@ -164,7 +164,7 @@ jobs:
           TAG: ${{ github.ref_name }}
           SERVER_URL: ${{ github.server_url }}
           REPO: ${{ github.repository }}
-          GH_REPO: pbuller/dhcp-probe
+          GH_REPO: pbuller212/dhcp-probe
         run: |
           set -euo pipefail
 

@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### CI/CD
 
-- **GitHub release mirroring** (`.forgejo/workflows/release.yml`): New `mirror-github-release` job runs after a tagged build's Forgejo release is published. It creates (or reuses, by tag lookup) a matching GitHub Release on `pbuller/dhcp-probe` via the GitHub REST API and uploads the same cross-compiled binaries as release assets, skipping any that were already uploaded. Requires a fine-grained GitHub PAT (Releases: write, scoped to this repo) stored as the Forgejo Actions secret `GH_RELEASE_TOKEN`. Forgejo Actions remains the only build pipeline; GitHub receives finished artifacts only.
+- **GitHub release mirroring** (`.forgejo/workflows/release.yml`): New `mirror-github-release` job runs after a tagged build's Forgejo release is published. It creates (or reuses, by tag lookup) a matching GitHub Release on `pbuller212/dhcp-probe` via the GitHub REST API and uploads the same cross-compiled binaries as release assets, skipping any that were already uploaded. Requires a fine-grained GitHub PAT (Releases: write, scoped to this repo) stored as the Forgejo Actions secret `GH_RELEASE_TOKEN`. Forgejo Actions remains the only build pipeline; GitHub receives finished artifacts only.
 
 ### Bug Fixes
 
