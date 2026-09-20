@@ -4,7 +4,16 @@ A CLI tool to discover and report DHCP servers on the local network.
 
 ## Installation
 
-Platform-specific install instructions:
+There's no package manager distribution (no Homebrew/apt/Scoop/winget) — download a release
+binary or build from source.
+
+### Download
+
+Download the latest binary for your platform from the
+[Releases](https://github.com/pbuller212/dhcp-probe/releases) page.
+
+Platform-specific install instructions (binary names to grab, post-download steps like
+`chmod +x` / `setcap` / Npcap):
 
 - [Linux](INSTALL.d/linux.md)
 - [Windows](INSTALL.d/windows.md)
