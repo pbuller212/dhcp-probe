@@ -1,3 +1,0 @@
-[submodule ".claude"]
-	path = .claude
-	url = ssh://git@git.mule-carob.ts.net/main/claude.git
